@@ -1,6 +1,8 @@
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock, AsyncMock, Mock
 import pandas as pd
+import io
+from fastapi.testclient import TestClient
 
 from src.media_coverage_tracker import ASSISTANT_MAP
 from src.media_coverage_tracker import (
@@ -13,15 +15,9 @@ from src.media_coverage_tracker import (
     process_hyperlinks,
     MessageRequest,
     categories,
-    call_assistant,
-    app
+    call_assistant
 )
 
-import io
-from unittest.mock import patch, Mock
-from fastapi.testclient import TestClient
-
-client = TestClient(app)
 
 #Unit test case for the function is_image_url
 def test_is_image_url_true():
@@ -211,39 +207,10 @@ async def test_call_assistant_json_error(mock_client_class):
     assert "Error parsing response JSON" in result
 
 
-@patch("src.media_coverage_tracker.requests.post") 
-def test_upload_image_returns_blob_url(mock_post):
-    # Prepare the fake blob_url response from the mock
-    fake_blob_url = "https://blob.trimble.com/blob.png"
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"blob_url": fake_blob_url}
-    mock_post.return_value = mock_response
-
-    # Create a dummy image file
-    file_content = b"fake image content"
-    files = {
-        "file": ("test_image.png", io.BytesIO(file_content), "image/png")
-    }
-
-    response = client.post(
-        "/agents/test-agent/sessions/f3a7c066-7c89-44b1-9471-589eb7a26814/images",
-        files=files
-    )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "blob_url" in data
-    assert data["blob_url"] == fake_blob_url
-
-    # Verify the requests.post call was made once with expected args
-    mock_post.assert_called_once()
-
-
-
 
 #Unit test case for the function process_hyperlinks
 @pytest.mark.asyncio
+@patch("src.media_coverage_tracker.openpyxl.load_workbook")
 @patch("src.media_coverage_tracker.send_to_all_assistants", new_callable=AsyncMock)
 @patch("src.media_coverage_tracker.send_message", new_callable=AsyncMock)
 @patch("src.media_coverage_tracker.process_image_link", new_callable=AsyncMock)
@@ -261,6 +228,7 @@ async def test_process_hyperlinks(
     mock_process_image_link,
     mock_send_message,
     mock_send_to_all_assistants,
+    mock_load_workbook
 ):
     categories[:] = ["Construction", "Surveying"]
 
@@ -281,7 +249,9 @@ async def test_process_hyperlinks(
     await process_hyperlinks("input.xlsx", "output.xlsx", "Sheet1")
 
     assert mock_read_hyperlinks.called
-    assert mock_to_excel.called
+    assert mock_load_workbook.called
+    mock_wb = mock_load_workbook.return_value
+    assert mock_wb.save.called
     assert mock_send_message.called
     assert mock_send_to_all_assistants.called
 

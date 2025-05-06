@@ -83,7 +83,7 @@ API_ENDPOINT = "http://localhost:8000/agents/all/messages"
 
 
 headers = {
-    "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ2NTI5NTAzLCJuYmYiOjE3NDY1MjU5MDMsImlhdCI6MTc0NjUyNTkwMywianRpIjoiOTlhYzNkZjdmMDAxNDg4Nzg1ZTgyOGQyMjBhYTY0NjEiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ2NTI1OTAyLCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.YseoJg3JworU7THLQyC8QKe2XCBHQ-iNmKXAPLDZ5kwEIJQM_iAnGfnrc7QmZEdP1cPRnsOp6Ih6EX1LvoV6GbjXnn0TLR1ELqHM24GWTO_CpnSUzGhO_0okGB-CDrB31J_Gfa6JEhCFgo-yWnTTb7zkmW75wlTCAdnNGOOcjdDAnGO-CbYAUzFyYlqWk5BUYly5KKgHlKxzA0IuHfooYQp9fv2UN8fcKSYJDOZOFoGlpnrMUocYdvLnN8gGI1989Tg8nRWbnjlfSkZyi6JCq6O91RAnYzF8RMtCvpQvjc33ocgI4621AO8IiqTF3liONm4oSumL36uAqNQmy7XOyg",
+    "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ2NTUxMDE0LCJuYmYiOjE3NDY1NDc0MTQsImlhdCI6MTc0NjU0NzQxNCwianRpIjoiOWI5YjNlZTA4ZjcxNGUzMDg3MWExYzliZjgxMzhiYzgiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ2NTQ3NDEyLCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.rZwfFoyh3JvY7aVYnzrxFioEpah8oA9Drb53NmuHmL1veQ0bmwDPdCWfy3MjlBrhRBjexI4fVXn5amq34_e-gjxkj4Jnb3Wym08Mwd-up_6za5T_NwA81q1cUucLqBBAnyIcWSpsrjfxl4kLRlR0peIf_UyG2sJ3fjSpQmKmtL5BEh_0bzwFncZeWl7MpUIvQatyKWKUKe6jFh0ESzuyELOp7fP8wozhghE0YTCMmRPc96xXO-uj3zmqJOH7tQ9RjDov_5H5vMFNZN6XOnZQGwpCbrPxvVlYoamOTl69kVWr8_udj3W1gWUReAzsKp6lRbvF3ZELxReqy9PRQ9874Q",
     "Content-Type": "application/json",
 }
 
@@ -142,29 +142,23 @@ async def send_to_all_assistants(request: MessageRequest):
     return {"consolidated_response": consolidated}
 
 #Writes the output to a new sheet in the same Excel file
-def write_output_to_same_excel(input_path: str, df: pd.DataFrame, output_sheet_name: str = "Categorized Output"):
+def write_output_to_same_excel(input_path: str, df: pd.DataFrame):
     wb = openpyxl.load_workbook(input_path)
-    original_sheet = wb.active
-
-    # Remove existing output sheet if it exists
-    if output_sheet_name in wb.sheetnames:
-        del wb[output_sheet_name]
-
-    new_sheet = wb.copy_worksheet(original_sheet)
-    new_sheet.title = output_sheet_name
+    sheet = wb["MediaScorecard"]  # Assuming the sheet is named "MediaScorecard"
 
     # Fixed known column range: CORP. (column 13) to CORPORATE THEMES (column 75)
     start_col_idx = 13
     end_col_idx = 75
 
     # Clear existing "X" marks from category columns (from row 5 to end)
-    for row in new_sheet.iter_rows(min_row=5, max_row=new_sheet.max_row):
+    for row in sheet.iter_rows(min_row=5, max_row=sheet.max_row):
         for col_idx in range(start_col_idx, end_col_idx + 1):
             row[col_idx - 1].value = None
 
+    # Write updated "X" values from the dataframe (assumes df starts with same headers)
     for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), start=5):
         for c_idx, value in enumerate(row, start=1):
-            new_sheet.cell(row=r_idx, column=c_idx, value=value)
+            sheet.cell(row=r_idx, column=c_idx, value=value)
 
     wb.save(input_path)
     
@@ -206,8 +200,7 @@ async def process_hyperlinks(input_path, output_path, sheet_name):
     #     result_df.to_excel(writer, index=False, sheet_name="Responses")
     write_output_to_same_excel(
         input_path=input_path,
-        df=result_df,
-        output_sheet_name="Categorized Output"
+        df=result_df
     )
 
 
@@ -243,7 +236,7 @@ async def trigger_process_hyperlinks():
 async def send_message(assistant_id: str, request: MessageRequest):
     url = f"{BASE_URL}/agents/{assistant_id}/messages"
     headers = {
-        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ2NTI5NTAzLCJuYmYiOjE3NDY1MjU5MDMsImlhdCI6MTc0NjUyNTkwMywianRpIjoiOTlhYzNkZjdmMDAxNDg4Nzg1ZTgyOGQyMjBhYTY0NjEiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ2NTI1OTAyLCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.YseoJg3JworU7THLQyC8QKe2XCBHQ-iNmKXAPLDZ5kwEIJQM_iAnGfnrc7QmZEdP1cPRnsOp6Ih6EX1LvoV6GbjXnn0TLR1ELqHM24GWTO_CpnSUzGhO_0okGB-CDrB31J_Gfa6JEhCFgo-yWnTTb7zkmW75wlTCAdnNGOOcjdDAnGO-CbYAUzFyYlqWk5BUYly5KKgHlKxzA0IuHfooYQp9fv2UN8fcKSYJDOZOFoGlpnrMUocYdvLnN8gGI1989Tg8nRWbnjlfSkZyi6JCq6O91RAnYzF8RMtCvpQvjc33ocgI4621AO8IiqTF3liONm4oSumL36uAqNQmy7XOyg"
+        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ2NTUxMDE0LCJuYmYiOjE3NDY1NDc0MTQsImlhdCI6MTc0NjU0NzQxNCwianRpIjoiOWI5YjNlZTA4ZjcxNGUzMDg3MWExYzliZjgxMzhiYzgiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ2NTQ3NDEyLCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.rZwfFoyh3JvY7aVYnzrxFioEpah8oA9Drb53NmuHmL1veQ0bmwDPdCWfy3MjlBrhRBjexI4fVXn5amq34_e-gjxkj4Jnb3Wym08Mwd-up_6za5T_NwA81q1cUucLqBBAnyIcWSpsrjfxl4kLRlR0peIf_UyG2sJ3fjSpQmKmtL5BEh_0bzwFncZeWl7MpUIvQatyKWKUKe6jFh0ESzuyELOp7fP8wozhghE0YTCMmRPc96xXO-uj3zmqJOH7tQ9RjDov_5H5vMFNZN6XOnZQGwpCbrPxvVlYoamOTl69kVWr8_udj3W1gWUReAzsKp6lRbvF3ZELxReqy9PRQ9874Q"
     }
     payload = request.dict()
     
@@ -263,7 +256,7 @@ async def send_message(assistant_id: str, request: MessageRequest):
 async def upload_image(assistant_id: str, session_id: str, file: UploadFile = File(...)):
     url = f"{BASE_URL}/agents/{assistant_id}/sessions/{session_id}/images"
     headers = {
-        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ2NTI5NTAzLCJuYmYiOjE3NDY1MjU5MDMsImlhdCI6MTc0NjUyNTkwMywianRpIjoiOTlhYzNkZjdmMDAxNDg4Nzg1ZTgyOGQyMjBhYTY0NjEiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ2NTI1OTAyLCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.YseoJg3JworU7THLQyC8QKe2XCBHQ-iNmKXAPLDZ5kwEIJQM_iAnGfnrc7QmZEdP1cPRnsOp6Ih6EX1LvoV6GbjXnn0TLR1ELqHM24GWTO_CpnSUzGhO_0okGB-CDrB31J_Gfa6JEhCFgo-yWnTTb7zkmW75wlTCAdnNGOOcjdDAnGO-CbYAUzFyYlqWk5BUYly5KKgHlKxzA0IuHfooYQp9fv2UN8fcKSYJDOZOFoGlpnrMUocYdvLnN8gGI1989Tg8nRWbnjlfSkZyi6JCq6O91RAnYzF8RMtCvpQvjc33ocgI4621AO8IiqTF3liONm4oSumL36uAqNQmy7XOyg"
+        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ2NTUxMDE0LCJuYmYiOjE3NDY1NDc0MTQsImlhdCI6MTc0NjU0NzQxNCwianRpIjoiOWI5YjNlZTA4ZjcxNGUzMDg3MWExYzliZjgxMzhiYzgiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ2NTQ3NDEyLCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.rZwfFoyh3JvY7aVYnzrxFioEpah8oA9Drb53NmuHmL1veQ0bmwDPdCWfy3MjlBrhRBjexI4fVXn5amq34_e-gjxkj4Jnb3Wym08Mwd-up_6za5T_NwA81q1cUucLqBBAnyIcWSpsrjfxl4kLRlR0peIf_UyG2sJ3fjSpQmKmtL5BEh_0bzwFncZeWl7MpUIvQatyKWKUKe6jFh0ESzuyELOp7fP8wozhghE0YTCMmRPc96xXO-uj3zmqJOH7tQ9RjDov_5H5vMFNZN6XOnZQGwpCbrPxvVlYoamOTl69kVWr8_udj3W1gWUReAzsKp6lRbvF3ZELxReqy9PRQ9874Q"
     }
     
     # Read the file content
