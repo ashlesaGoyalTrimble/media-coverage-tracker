@@ -4,8 +4,8 @@ import pandas as pd
 from unittest.mock import patch, MagicMock, AsyncMock, Mock
 from fastapi.testclient import TestClient
 
-from src.media_coverage_tracker import ASSISTANT_MAP
-from src.media_coverage_tracker import (
+from src.services.media_service import ASSISTANT_MAP
+from src.services.media_service import (
     is_image_url,
     read_hyperlinks,
     web_scrape_text,
