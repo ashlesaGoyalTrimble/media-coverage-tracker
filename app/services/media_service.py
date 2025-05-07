@@ -123,7 +123,7 @@ def is_image_url(url: str) -> bool:
 # Writes the output to a new sheet in the same Excel file
 def write_output_to_same_excel(input_path: str, df: pd.DataFrame):
     wb = openpyxl.load_workbook(input_path)
-    sheet = wb["media_scorecard"]  # Updated sheet name
+    sheet = wb["MediaScorecard"]  # Updated sheet name
 
     # Fixed known column range: CORP. (column 13) to CORPORATE THEMES (column 75)
     start_col_idx = 13

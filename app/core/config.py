@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     
     # Excel file settings
     EXCEL_FILE_PATH: str = "Trimble_Media_Coverage_Tracker.xlsx"
-    MEDIA_SHEET_NAME: str = "media_scorecard"
+    MEDIA_SHEET_NAME: str = "MediaScorecard"
 
     class Config:
         case_sensitive = True
