@@ -1,7 +1,7 @@
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock, Mock
-import pandas as pd
 import io
+import pandas as pd
+from unittest.mock import patch, MagicMock, AsyncMock, Mock
 from fastapi.testclient import TestClient
 
 from src.media_coverage_tracker import ASSISTANT_MAP
