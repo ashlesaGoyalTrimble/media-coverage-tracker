@@ -1,7 +1,7 @@
 """Router for media-related API endpoints."""
 import asyncio
 import requests
-from fastapi import APIRouter, HTTPException, UploadFile,Query
+from fastapi import APIRouter, HTTPException, UploadFile,Query,File
 from app.schemas.media import MessageRequest
 from app.services.media_service import (
     call_assistant, process_hyperlinks, 
@@ -48,12 +48,25 @@ async def upload_image_route(assistant_id: str, session_id: str, file: UploadFil
     return await upload_image(assistant_id, session_id, file)
 
 
+# @router.post("/process-hyperlinks")
+# async def trigger_process_hyperlinks(media_sheet_name: str = Query(..., description="Name of the sheet in the Excel file")):
+#     """Process hyperlinks from the Excel sheet and store responses."""
+#     result = await process_hyperlinks(
+#         settings.EXCEL_FILE_PATH, 
+#         "assistant_responses.xlsx", 
+#         media_sheet_name
+#     )
+#     return {"status": result}
+
 @router.post("/process-hyperlinks")
-async def trigger_process_hyperlinks(media_sheet_name: str = Query(..., description="Name of the sheet in the Excel file")):
-    """Process hyperlinks from the Excel sheet and store responses."""
+async def trigger_process_hyperlinks(
+    file_path: str = Query(..., description="Full path to the Excel file"),
+    media_sheet_name: str = Query(..., description="Name of the sheet in the Excel file")
+):
+    """Process hyperlinks from the Excel sheet and store responses in the same file."""
     result = await process_hyperlinks(
-        settings.EXCEL_FILE_PATH, 
-        "assistant_responses.xlsx", 
-        media_sheet_name
+        input_path=file_path,
+        output_path=file_path,  # modifying in-place
+        sheet_name=media_sheet_name
     )
     return {"status": result}
