@@ -51,9 +51,9 @@ async def upload_image_route(assistant_id: str, session_id: str, file: UploadFil
 @router.post("/process-hyperlinks")
 async def trigger_process_hyperlinks(media_sheet_name: str = Query(..., description="Name of the sheet in the Excel file")):
     """Process hyperlinks from the Excel sheet and store responses."""
-    await process_hyperlinks(
+    result = await process_hyperlinks(
         settings.EXCEL_FILE_PATH, 
         "assistant_responses.xlsx", 
         media_sheet_name
     )
-    return {"status": "Processing completed. Check output file."} 
+    return {"status": result}
