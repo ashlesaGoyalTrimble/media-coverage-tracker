@@ -30,7 +30,7 @@ BASE_URL = "https://agw.construction-integration.trimble.cloud/trimbledeveloperp
 API_ENDPOINT = "http://localhost:8000/agents/all/messages"
 
 HEADERS = {
-    "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ3MDYyMDE0LCJuYmYiOjE3NDcwNTg0MTQsImlhdCI6MTc0NzA1ODQxNCwianRpIjoiNTQ2ZGRiY2VhYWY5NGE4MTg3OGRiYTE0YjZiYzk2MWYiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ3MDU4NDEyLCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.nbvIf87OuesozHQYbwJb1wYLMRcH0A14SfMCnT8vuDcctH6rVIHPvyfLIqGQbd1DhTjhrFeoS16oJDaPI-KzUP_t7pSTO9CyEESmbf2OG7KCNMkHlDXdCxVUpGlD-W_BeSW6roIf4amtPWjl_-3cNSQVpvyzcR423he9vtyc0rpo9TkSiLaxyjy-Lnd7E83uoSGnJ5aslXLIB6gFsUnblS9EMcVVnD0Femiu0MspA-EfiyMmkPLma4R55GEOiS60Y0KJbwfsgV0JbrdGTtGyZKMxhDj40gs2tWDLrtLcCZbGuACSnXv19fstudQmg2X0X_PC7ijOIiVuCLWQqCi3Gg",
+    "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ3MTIxMzUxLCJuYmYiOjE3NDcxMTc3NTEsImlhdCI6MTc0NzExNzc1MSwianRpIjoiZDg5NDdhNTVkZDA4NGNiNWIxNGI0NjVlNDAzZjdmOWQiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ3MTE3NzQ5LCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.oeiafSkCEsXa82jv9zWNcePw-sczxQzgaKJsd_gHNDN0tfYUrOKbBTh8lmTFWa62jy69y8ZpvACC0UknXiR-JiveOR7n-T-szSa-ydsP8gJqjDRP9d2578QVU3zsInG7vm7YeY-kTFzSdoX6PSJlRrz1sGykBlmlor8kI89RhAOzGVNp-HoSGzd04RNkb3yRkJmYvnh4cU68sNJF-2ilLn_MAnwqH24jboIHtAkEYq2A1m5s5-6Mgc09P2-YN5HBb_VRU9yWCcQx_mT-wQA6pjtZ5V4FieQfPnntHB5_fqPFargNVWRL8DcVI09TcCuEbesEsdGlGF-9Bz31EK1TTA",
     "Content-Type": "application/json",
 }
 
@@ -161,7 +161,7 @@ async def process_image_link(url: str) -> str:
 async def send_message(assistant_id: str, request: MessageRequest):
     url = f"{BASE_URL}/agents/{assistant_id}/messages"
     headers = {
-        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ3MDYyMDE0LCJuYmYiOjE3NDcwNTg0MTQsImlhdCI6MTc0NzA1ODQxNCwianRpIjoiNTQ2ZGRiY2VhYWY5NGE4MTg3OGRiYTE0YjZiYzk2MWYiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ3MDU4NDEyLCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.nbvIf87OuesozHQYbwJb1wYLMRcH0A14SfMCnT8vuDcctH6rVIHPvyfLIqGQbd1DhTjhrFeoS16oJDaPI-KzUP_t7pSTO9CyEESmbf2OG7KCNMkHlDXdCxVUpGlD-W_BeSW6roIf4amtPWjl_-3cNSQVpvyzcR423he9vtyc0rpo9TkSiLaxyjy-Lnd7E83uoSGnJ5aslXLIB6gFsUnblS9EMcVVnD0Femiu0MspA-EfiyMmkPLma4R55GEOiS60Y0KJbwfsgV0JbrdGTtGyZKMxhDj40gs2tWDLrtLcCZbGuACSnXv19fstudQmg2X0X_PC7ijOIiVuCLWQqCi3Gg"
+        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ3MTIxMzUxLCJuYmYiOjE3NDcxMTc3NTEsImlhdCI6MTc0NzExNzc1MSwianRpIjoiZDg5NDdhNTVkZDA4NGNiNWIxNGI0NjVlNDAzZjdmOWQiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ3MTE3NzQ5LCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.oeiafSkCEsXa82jv9zWNcePw-sczxQzgaKJsd_gHNDN0tfYUrOKbBTh8lmTFWa62jy69y8ZpvACC0UknXiR-JiveOR7n-T-szSa-ydsP8gJqjDRP9d2578QVU3zsInG7vm7YeY-kTFzSdoX6PSJlRrz1sGykBlmlor8kI89RhAOzGVNp-HoSGzd04RNkb3yRkJmYvnh4cU68sNJF-2ilLn_MAnwqH24jboIHtAkEYq2A1m5s5-6Mgc09P2-YN5HBb_VRU9yWCcQx_mT-wQA6pjtZ5V4FieQfPnntHB5_fqPFargNVWRL8DcVI09TcCuEbesEsdGlGF-9Bz31EK1TTA"
     }
     payload = request.dict()
     
@@ -180,7 +180,7 @@ async def send_message(assistant_id: str, request: MessageRequest):
 # Sends a message to all assistants and consolidates the responses
 async def send_to_all_assistants(request: MessageRequest):
     headers = {
-        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ3MDYyMDE0LCJuYmYiOjE3NDcwNTg0MTQsImlhdCI6MTc0NzA1ODQxNCwianRpIjoiNTQ2ZGRiY2VhYWY5NGE4MTg3OGRiYTE0YjZiYzk2MWYiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ3MDU4NDEyLCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.nbvIf87OuesozHQYbwJb1wYLMRcH0A14SfMCnT8vuDcctH6rVIHPvyfLIqGQbd1DhTjhrFeoS16oJDaPI-KzUP_t7pSTO9CyEESmbf2OG7KCNMkHlDXdCxVUpGlD-W_BeSW6roIf4amtPWjl_-3cNSQVpvyzcR423he9vtyc0rpo9TkSiLaxyjy-Lnd7E83uoSGnJ5aslXLIB6gFsUnblS9EMcVVnD0Femiu0MspA-EfiyMmkPLma4R55GEOiS60Y0KJbwfsgV0JbrdGTtGyZKMxhDj40gs2tWDLrtLcCZbGuACSnXv19fstudQmg2X0X_PC7ijOIiVuCLWQqCi3Gg"
+        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ3MTIxMzUxLCJuYmYiOjE3NDcxMTc3NTEsImlhdCI6MTc0NzExNzc1MSwianRpIjoiZDg5NDdhNTVkZDA4NGNiNWIxNGI0NjVlNDAzZjdmOWQiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ3MTE3NzQ5LCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.oeiafSkCEsXa82jv9zWNcePw-sczxQzgaKJsd_gHNDN0tfYUrOKbBTh8lmTFWa62jy69y8ZpvACC0UknXiR-JiveOR7n-T-szSa-ydsP8gJqjDRP9d2578QVU3zsInG7vm7YeY-kTFzSdoX6PSJlRrz1sGykBlmlor8kI89RhAOzGVNp-HoSGzd04RNkb3yRkJmYvnh4cU68sNJF-2ilLn_MAnwqH24jboIHtAkEYq2A1m5s5-6Mgc09P2-YN5HBb_VRU9yWCcQx_mT-wQA6pjtZ5V4FieQfPnntHB5_fqPFargNVWRL8DcVI09TcCuEbesEsdGlGF-9Bz31EK1TTA"
     }
     payload = request.dict()
     tasks = [
@@ -197,15 +197,16 @@ async def send_to_all_assistants(request: MessageRequest):
 
 
 # Main function to extract text, send to API, and store X for matching categories
+
 async def process_hyperlinks(input_path, output_path, sheet_name):
     df = read_hyperlinks(input_path, sheet_name)
 
-    results = []
-    for _, row in df.iterrows():
+    async def process_link(row):
+        """Handles individual link processing asynchronously."""
         link = row.get("Unnamed: 1")
         if pd.notnull(link):
             print(f"Processing link: {link}")
-            
+
             if is_image_url(link):
                 # Process image URL
                 blob_url = await process_image_link(link)
@@ -226,14 +227,15 @@ async def process_hyperlinks(input_path, output_path, sheet_name):
                 if re.search(rf'\b{re.escape(category)}\b', response_text, flags=re.IGNORECASE):
                     row_dict[category] = "X"
 
-            results.append(row_dict)
+            return row_dict
 
-    result_df = pd.DataFrame(results)
+        return None
 
-    # with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-    #     result_df.to_excel(writer, index=False, sheet_name="Responses")
-    write_output_to_same_excel(
-        input_path=input_path,
-        df=result_df
-    ) 
+    tasks = [process_link(row) for _, row in df.iterrows()]
+    results = await asyncio.gather(*tasks)
+
+    result_df = pd.DataFrame([r for r in results if r])
+
+    write_output_to_same_excel(input_path, result_df)
+
     return "Processing completed and results saved."
