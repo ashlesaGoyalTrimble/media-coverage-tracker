@@ -24,15 +24,11 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from fastapi import HTTPException, UploadFile, File
 
 from app.schemas.media import MessageRequest, AssistantCreateRequest, Tool
+from app.services.auth_service import get_trimble_auth_headers
 
 
 BASE_URL = "https://api.assistant.trimble.cloud/ui/trimbledeveloperprogram/assistants/v1"
 API_ENDPOINT = "http://localhost:8000/agents/all/messages"
-
-HEADERS = {
-    "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzU2ODkzNDcxLCJuYmYiOjE3NTY4ODk4NzEsImlhdCI6MTc1Njg4OTg3MSwianRpIjoiNDJhNzg4ZTA0NzRkNDI2ZmE3NzllYTE3MzJlNDU0NzIiLCJqd3RfdmVyIjoyLCJzdWIiOiJkOTZlYmEzZC00ZDAxLTQyZGMtYWVjNS1hMDVmOThhNzNiNTUiLCJhdWQiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImF1dGhfdGltZSI6MTc1Njg4OTg2OSwiYW1yIjpbImZlZGVyYXRlZCIsIm9rdGFfdHJpbWJsZSIsIm1mYSJdLCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhdF9oYXNoIjoiQ2paLWo5dEktQ0lRTVRva2V3eEVtdyIsImFjY291bnRfaWQiOiJjZWFhNTk1Ny04YjIzLTU5ZWYtYmMwZC1jOWUwNTRiNWZlNjAiLCJmZWRlcmF0aW9uX29yaWdpbiI6Im9rdGFfdHJpbWJsZSIsImdpdmVuX25hbWUiOiJLYXJwb29yYXN1bmRhcmFwYW5kaWFuIiwiZmFtaWx5X25hbWUiOiJQYXVscGFuZGkiLCJlbWFpbCI6ImthcnBvb3Jhc3VuZGFyYXBhbmRpYW5fcGF1bHBhbmRpQHRyaW1ibGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpY3R1cmUiOiJodHRwczovL3VzLmlkLnRyaW1ibGUuY29tL3VpL3Jlc291cmNlcy9kZWZhdWx0X3Byb2ZpbGUucG5nP3Y9MSIsImRhdGFfcmVnaW9uIjoidXMifQ.KgZ1EEF0borHpBV16chjssNw7uZMLtqOc6jXfNeK5-yJXCe3R4QthhmQgBE4josM0_z2uxbH0Uc_cGJZnNWz336QTq19CQmKnlFZifm25AP37u9FmqsuzgUqcHHJlHNLsRtUWIE8mF3UDeJTfoz4gAjD1DD8yuIoUfJjydVDCUuiMzt6SzE-goiCqJ1nt2ygnED599S3RmiogYBIGTPVpXIxqSuN_FtxwYIiqvV6OyMrHY5Q5la8pkH2YNLoow4g37kb6n5i8tVSAi7sdb3d94OeCfQ9XjoxN_h0PqR3KMutrgVaAwfgRAL3SUQ_HiSNAezyiMxccNaD3jbJcdhMqg",
-    "Content-Type": "application/json",
-}
 
 ASSISTANT_MAP = {
     "Content-type": "trimble-media-content-type",
@@ -121,7 +117,13 @@ async def upload_image(assistant_id: str, session_id: str, file: UploadFile) -> 
     try:
         url = f"{BASE_URL}/agents/{assistant_id}/sessions/{session_id}/images"
         files = {"file": (file.filename, await file.read(), file.content_type)}
-        response = requests.post(url, headers=HEADERS, files=files)
+        
+        # Get fresh authentication headers
+        headers = await get_trimble_auth_headers()
+        # Remove Content-Type for multipart/form-data uploads
+        auth_headers = {k: v for k, v in headers.items() if k != "Content-Type"}
+        
+        response = requests.post(url, headers=auth_headers, files=files)
         
         if response.status_code == 200:
             return response.json()
@@ -192,9 +194,9 @@ async def process_image_link(url: str) -> str:
 async def send_message(assistant_id: str, request: MessageRequest):
     try:
         url = f"{BASE_URL}/agents/{assistant_id}/messages"
-        headers = {
-            "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ3MTIxMzUxLCJuYmYiOjE3NDcxMTc3NTEsImlhdCI6MTc0NzExNzc1MSwianRpIjoiZDg5NDdhNTVkZDA4NGNiNWIxNGI0NjVlNDAzZjdmOWQiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ3MTE3NzQ5LCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.oeiafSkCEsXa82jv9zWNcePw-sczxQzgaKJsd_gHNDN0tfYUrOKbBTh8lmTFWa62jy69y8ZpvACC0UknXiR-JiveOR7n-T-szSa-ydsP8gJqjDRP9d2578QVU3zsInG7vm7YeY-kTFzSdoX6PSJlRrz1sGykBlmlor8kI89RhAOzGVNp-HoSGzd04RNkb3yRkJmYvnh4cU68sNJF-2ilLn_MAnwqH24jboIHtAkEYq2A1m5s5-6Mgc09P2-YN5HBb_VRU9yWCcQx_mT-wQA6pjtZ5V4FieQfPnntHB5_fqPFargNVWRL8DcVI09TcCuEbesEsdGlGF-9Bz31EK1TTA"
-        }
+        
+        # Get fresh authentication headers
+        headers = await get_trimble_auth_headers()
         payload = request.dict()
         
         response = requests.post(url, headers=headers, json=payload)

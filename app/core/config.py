@@ -1,7 +1,7 @@
 """Configuration settings for the Trimble Media Coverage Tracker."""
 from pydantic_settings import BaseSettings
 import os
-from typing import List, Union, Dict, Any, Optional
+from typing import List
 
 
 class Settings(BaseSettings):
@@ -10,10 +10,14 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
     
     # Base URL for assistant APIs
-    ASSISTANT_BASE_URL: str = "https://agw.construction-integration.trimble.cloud/trimbledeveloperprogram/assistants/v1"
+    ASSISTANT_BASE_URL: str = "https://api.assistant.trimble.cloud/ui/trimbledeveloperprogram/assistants/v1"
     
     # Excel file settings
     EXCEL_FILE_PATH: str = "Trimble_Media_Coverage_Tracker.xlsx"
+    
+    # Trimble Identity authentication settings
+    TRIMBLE_CLIENT_ID: str = "685cf9be-a21b-489b-bff8-0d4e862ee3c9"
+    TRIMBLE_CLIENT_SECRET: str = "986e4d10490c43dda22ffa97f33a0565"
     
 
     class Config:

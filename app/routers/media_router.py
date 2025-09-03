@@ -2,14 +2,15 @@
 import asyncio
 import io
 import requests
-from fastapi import APIRouter, HTTPException, UploadFile, Query, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from app.schemas.media import MessageRequest
 from app.services.media_service import (
     call_assistant, process_hyperlinks, 
     upload_image, 
-    BASE_URL, ASSISTANT_MAP, HEADERS
+    BASE_URL, ASSISTANT_MAP
 )
+from app.services.auth_service import get_trimble_auth_headers, get_trimble_access_token
 from app.core.config import settings
 
 # Create router with prefix and tags
@@ -19,13 +20,37 @@ router = APIRouter(
 )
 
 
+@router.get("/test-auth")
+async def test_authentication():
+    """Test endpoint to verify Trimble Identity authentication is working."""
+    try:
+        # Get access token
+        token = await get_trimble_access_token()
+        
+        # Get headers
+        headers = await get_trimble_auth_headers()
+        
+        return {
+            "status": "success",
+            "message": "Authentication is working",
+            "token_preview": f"{token[:20]}..." if token else "No token",
+            "headers_present": "Authorization" in headers
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Authentication failed: {str(e)}"
+        }
+
+
 @router.post("/agents/all/messages")
 async def send_to_all_assistants(request: MessageRequest):
     """Route to send messages to all assistants and consolidate responses."""
     try:
+        headers = await get_trimble_auth_headers()
         payload = request.dict()
         tasks = [
-            call_assistant(f"{BASE_URL}/agents/{ASSISTANT_MAP[aid]}/messages", HEADERS, payload)
+            call_assistant(f"{BASE_URL}/agents/{ASSISTANT_MAP[aid]}/messages", headers, payload)
             for aid in ASSISTANT_MAP
         ]
         results = await asyncio.gather(*tasks)
@@ -41,7 +66,8 @@ async def send_message(assistant_id: str, request: MessageRequest):
     """Route to send a message to a specific assistant."""
     try:
         url = f"{BASE_URL}/agents/{assistant_id}/messages"
-        response = requests.post(url, headers=HEADERS, json=request.dict())
+        headers = await get_trimble_auth_headers()
+        response = requests.post(url, headers=headers, json=request.dict())
 
         if response.status_code == 200:
             return response.json()
