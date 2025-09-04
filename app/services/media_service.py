@@ -218,9 +218,8 @@ async def send_message(assistant_id: str, request: MessageRequest):
 # Sends a message to all assistants and consolidates the responses
 async def send_to_all_assistants(request: MessageRequest):
     try:
-        headers = {
-            "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lkLnRyaW1ibGUuY29tIiwiZXhwIjoxNzQ3MTIxMzUxLCJuYmYiOjE3NDcxMTc3NTEsImlhdCI6MTc0NzExNzc1MSwianRpIjoiZDg5NDdhNTVkZDA4NGNiNWIxNGI0NjVlNDAzZjdmOWQiLCJqd3RfdmVyIjoyLCJzdWIiOiI2N2UxN2FjNi1iZDBmLTQzNjAtYTJiYy02Y2NmYjA1NGU5ZmMiLCJpZGVudGl0eV90eXBlIjoidXNlciIsImFtciI6WyJmZWRlcmF0ZWQiLCJva3RhX3RyaW1ibGUiLCJtZmEiXSwiYXV0aF90aW1lIjoxNzQ3MTE3NzQ5LCJhenAiOiI2N2FlNjNlMy1jZGUxLTRhYzEtOTRmNi0yMmIwMGFhZGM1MDYiLCJhY2NvdW50X2lkIjoidHJpbWJsZS1wbGFjZWhvbGRlci1vZi1lbXBsb3llZXMiLCJhdWQiOlsiNjdhZTYzZTMtY2RlMS00YWMxLTk0ZjYtMjJiMDBhYWRjNTA2Il0sInNjb3BlIjoidGRhIiwiZGF0YV9yZWdpb24iOiJ1cyJ9.oeiafSkCEsXa82jv9zWNcePw-sczxQzgaKJsd_gHNDN0tfYUrOKbBTh8lmTFWa62jy69y8ZpvACC0UknXiR-JiveOR7n-T-szSa-ydsP8gJqjDRP9d2578QVU3zsInG7vm7YeY-kTFzSdoX6PSJlRrz1sGykBlmlor8kI89RhAOzGVNp-HoSGzd04RNkb3yRkJmYvnh4cU68sNJF-2ilLn_MAnwqH24jboIHtAkEYq2A1m5s5-6Mgc09P2-YN5HBb_VRU9yWCcQx_mT-wQA6pjtZ5V4FieQfPnntHB5_fqPFargNVWRL8DcVI09TcCuEbesEsdGlGF-9Bz31EK1TTA"
-        }
+        # Get fresh authentication headers
+        headers = await get_trimble_auth_headers()
         payload = request.dict()
         tasks = [
             call_assistant(f"{BASE_URL}/agents/{ASSISTANT_MAP[aid]}/messages", headers, payload)
