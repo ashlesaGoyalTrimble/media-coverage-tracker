@@ -20,29 +20,6 @@ router = APIRouter(
 )
 
 
-@router.get("/test-auth")
-async def test_authentication():
-    """Test endpoint to verify Trimble Identity authentication is working."""
-    try:
-        # Get access token
-        token = await get_trimble_access_token()
-        
-        # Get headers
-        headers = await get_trimble_auth_headers()
-        
-        return {
-            "status": "success",
-            "message": "Authentication is working",
-            "token_preview": f"{token[:20]}..." if token else "No token",
-            "headers_present": "Authorization" in headers
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Authentication failed: {str(e)}"
-        }
-
-
 @router.post("/agents/all/messages")
 async def send_to_all_assistants(request: MessageRequest):
     """Route to send messages to all assistants and consolidate responses."""

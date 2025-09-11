@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from app.routers import media_router
+from app.routers import media_router, auth_router
 from app.core.config import settings
 
 app = FastAPI(
@@ -12,16 +12,34 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+# Configure CORS based on environment
+cors_origins = settings.BACKEND_CORS_ORIGINS
+if settings.ENVIRONMENT == "production":
+    # In production, you should specify exact origins
+    cors_origins = settings.BACKEND_CORS_ORIGINS
+elif settings.ENVIRONMENT == "development":
+    # In development, allow additional origins or use wildcard if needed
+    cors_origins = settings.BACKEND_CORS_ORIGINS + ["*"] if not any("*" in origin for origin in settings.BACKEND_CORS_ORIGINS) else ["*"]
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Use origins from config
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers",
+    ],
 )
 
 # Include routers
+app.include_router(auth_router.router)
 app.include_router(media_router.router)
 
 if __name__ == "__main__":
