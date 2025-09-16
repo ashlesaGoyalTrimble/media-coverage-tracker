@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     EXCEL_FILE_PATH: str = "Trimble_Media_Coverage_Tracker.xlsx"
     
     # Trimble Identity authentication settings
+    # TRIMBLE_TOKEN_ENDPOINT: str = "https://stage.id.trimblecloud.com/oauth/token"
+    # TRIMBLE_CLIENT_ID: str = "4b172226-4c3b-4219-a786-f35e528f2b5b"
+    # TRIMBLE_CLIENT_SECRET: str = "e5f7b9de13344649bd3023e34145c630"
+    TRIMBLE_TOKEN_ENDPOINT: str = "https://id.trimble.com/oauth/token"
     TRIMBLE_CLIENT_ID: str = "685cf9be-a21b-489b-bff8-0d4e862ee3c9"
     TRIMBLE_CLIENT_SECRET: str = "986e4d10490c43dda22ffa97f33a0565"
     

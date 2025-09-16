@@ -12,22 +12,11 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# Configure CORS based on environment
-cors_origins = settings.BACKEND_CORS_ORIGINS
-if settings.ENVIRONMENT == "production":
-    # In production, use exact origins for security
-    cors_origins = settings.BACKEND_CORS_ORIGINS
-elif settings.ENVIRONMENT == "development":
-    # In development, allow additional origins or use wildcard if needed
-    cors_origins = settings.BACKEND_CORS_ORIGINS + ["*"] if not any("*" in origin for origin in settings.BACKEND_CORS_ORIGINS) else ["*"]
-else:
-    # Default to allowing configured origins
-    cors_origins = settings.BACKEND_CORS_ORIGINS
 
-# Add CORS middleware
+# Add CORS middleware - Allow all origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=[
