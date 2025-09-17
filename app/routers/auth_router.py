@@ -28,10 +28,13 @@ async def test_authentication():
             "headers_present": "Authorization" in headers
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Authentication failed: {str(e)}"
-        ) from e
+        print(f"Exception in test_authentication: {e}")
+        return {
+            "status": "error",
+            "message": f"Authentication failed: {str(e)}",
+            "token_preview": "Error",
+            "headers_present": False
+        }
 
 
 @router.get("/token")
@@ -45,10 +48,12 @@ async def get_access_token(force_refresh: bool = False):
             "message": "Token retrieved successfully"
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to get access token: {str(e)}"
-        ) from e
+        print(f"Exception in get_access_token: {e}")
+        return {
+            "status": "error",
+            "token_preview": "Error",
+            "message": f"Failed to get access token: {str(e)}"
+        }
 
 
 @router.get("/headers")
@@ -66,10 +71,15 @@ async def get_auth_headers() -> Dict[str, str]:
             "headers": safe_headers
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to get auth headers: {str(e)}"
-        ) from e
+        print(f"Exception in get_auth_headers: {e}")
+        return {
+            "status": "error",
+            "headers": {
+                "Content-Type": "application/json",
+                "has_authorization": False
+            },
+            "message": f"Failed to get auth headers: {str(e)}"
+        }
 
 
 @router.post("/refresh")
@@ -83,18 +93,29 @@ async def refresh_token():
             "token_preview": f"{token[:20]}..." if token else "No token"
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to refresh token: {str(e)}"
-        ) from e
+        print(f"Exception in refresh_token: {e}")
+        return {
+            "status": "error",
+            "message": f"Failed to refresh token: {str(e)}",
+            "token_preview": "Error"
+        }
 
 
 @router.get("/cors-debug")
 async def debug_cors():
     """Debug endpoint to check CORS configuration."""
-    return {
-        "status": "success",
-        "environment": settings.ENVIRONMENT,
-        "allowed_origins": "*",
-        "message": "CORS debug info"
-    }
+    try:
+        return {
+            "status": "success",
+            "environment": settings.ENVIRONMENT,
+            "allowed_origins": "*",
+            "message": "CORS debug info"
+        }
+    except Exception as e:
+        print(f"Exception in debug_cors: {e}")
+        return {
+            "status": "error",
+            "environment": "unknown",
+            "allowed_origins": "*",
+            "message": f"CORS debug failed: {str(e)}"
+        }

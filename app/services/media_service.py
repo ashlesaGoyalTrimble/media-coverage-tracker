@@ -1,18 +1,29 @@
 """Media-related services for processing articles and images."""
 import requests
+from typing import List
+import io
 import asyncio
 import httpx
 import traceback
 import pandas as pd
+import time
 from bs4 import BeautifulSoup
 import openpyxl
 from io import BytesIO
+import os
+from urllib.parse import urljoin
+import pytesseract
+from PIL import Image
+import tempfile
+import base64
 import re
 import uuid
+from selenium import webdriver
+from fastapi.responses import StreamingResponse
 from openpyxl.utils.dataframe import dataframe_to_rows
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile, File
 
-from app.schemas.media import MessageRequest
+from app.schemas.media import MessageRequest, AssistantCreateRequest, Tool
 from app.services.auth_service import get_trimble_auth_headers
 
 
@@ -55,7 +66,7 @@ async def read_hyperlinks(file: UploadFile, sheet_name: str) -> pd.DataFrame:
         contents = await file.read()
         return pd.read_excel(BytesIO(contents), sheet_name=sheet_name)
     except Exception as e:
-        print(f"catched error in read_hyperlinks: {e}")
+        print(f"Exception in read_hyperlinks: {e}")
         return pd.DataFrame()
 
 
@@ -63,44 +74,90 @@ async def read_hyperlinks(file: UploadFile, sheet_name: str) -> pd.DataFrame:
 def web_scrape_text(url: str) -> str:
     """Extracts article text from the given URL."""
     try:
-        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
+        # Add short timeout to prevent hanging
+        response = requests.get(
+            url, 
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}, 
+            timeout=15  # 15 second timeout
+        )
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, 'html.parser')
-            return soup.get_text().strip()
+            text = soup.get_text().strip()
+            return text if text else "No content found"
         else:
+            print(f"HTTP {response.status_code} for {url}")
             return f"Failed to scrape URL: {url} (HTTP {response.status_code})"
-    except requests.RequestException as e:
-        print(f"Request error in web_scrape_text: {e}")
-        return "Error: Request failed"
+    except requests.exceptions.Timeout:
+        print(f"Timeout scraping {url}")
+        return f"Error: Timeout scraping {url}"
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection error scraping {url}: {e}")
+        return f"Error: Connection failed for {url}"
     except Exception as e:
-        print(f"Unexpected error in web_scrape_text: {e}")
-        return "Error: Processing failed"
+        print(f"Exception in web_scrape_text for {url}: {e}")
+        return f"Error: Failed to scrape {url}"
 
 
 # Function to call the assistant API with the scraped text
 async def call_assistant(url: str, headers: dict, payload: dict) -> str:
-    """Sends a message to the assistant API."""
+    """Sends a message to the assistant API with timeout and retry logic."""
     try:
-        for attempt in range(3):
+        for attempt in range(2):  # Reduced to 2 attempts for faster processing
             try:
-                async with httpx.AsyncClient(timeout=30.0) as client:
+                # Shorter timeout to prevent AWS gateway timeouts
+                async with httpx.AsyncClient(timeout=20.0) as client:
                     response = await client.post(url, headers=headers, json=payload)
-                    json_data = response.json()
-                    return json_data.get("message", str(json_data))
-            except httpx.ReadTimeout:
-                if attempt < 2:
-                    await asyncio.sleep(2)
+                    
+                    if response.status_code == 200:
+                        try:
+                            json_data = response.json()
+                            return json_data.get("message", str(json_data))
+                        except Exception as json_e:
+                            print(f"JSON parse error on attempt {attempt + 1}: {json_e}")
+                            return response.text if response.text else "Empty response"
+                    elif response.status_code == 504:
+                        print(f"504 Gateway timeout on attempt {attempt + 1} for {url}")
+                        if attempt < 1:
+                            await asyncio.sleep(1)
+                            continue
+                        else:
+                            return "Error: Gateway timeout (504)"
+                    else:
+                        print(f"HTTP {response.status_code} on attempt {attempt + 1} for {url}")
+                        return f"Error: HTTP {response.status_code}"
+                        
+            except (httpx.TimeoutException, httpx.ReadTimeout) as timeout_e:
+                print(f"Timeout on attempt {attempt + 1} for {url}: {timeout_e}")
+                if attempt < 1:
+                    await asyncio.sleep(1)
+                    continue
                 else:
-                    return "Error: Assistant request timed out."
+                    return "Error: Request timeout"
+                    
+            except (httpx.NetworkError, httpx.ConnectError) as net_e:
+                print(f"Network error on attempt {attempt + 1} for {url}: {net_e}")
+                if attempt < 1:
+                    await asyncio.sleep(1)
+                    continue
+                else:
+                    return f"Error: Network error - {net_e}"
+                    
             except Exception as e:
-                if attempt < 2:
-                    await asyncio.sleep(2)
+                error_msg = str(e)
+                print(f"Error on attempt {attempt + 1} for {url}: {error_msg}")
+                if "504" in error_msg or "Gateway" in error_msg:
+                    if attempt < 1:
+                        await asyncio.sleep(1)
+                        continue
+                    else:
+                        return "Error: Gateway timeout"
                 else:
-                    return f"Unexpected error: {e}"
-        return "Error: catched error"
+                    return f"Error: {error_msg}"
+                    
+        return "Error: All attempts failed"
     except Exception as e:
-        print(f"catched error in call_assistant: {e}")
-        return "Error: catched error"
+        print(f"Fatal error in call_assistant for {url}: {e}")
+        return f"Error: {e}"
 
 
 # Function to upload an image and get its blob URL
@@ -122,7 +179,7 @@ async def upload_image(assistant_id: str, session_id: str, file: UploadFile) -> 
         else:
             return {"error": f"Upload failed with status code {response.status_code}"}
     except Exception as e:
-        print(f"catched error in upload_image: {e}")
+        print(f"Exception in upload_image: {e}")
         return {"error": "catched error"}
 
 
@@ -132,7 +189,7 @@ def is_image_url(url: str) -> bool:
     try:
         return "qg" in url.lower() or "digital" in url.lower()
     except Exception as e:
-        print(f"catched error in is_image_url: {e}")
+        print(f"Exception in is_image_url: {e}")
         return False
 
 # Writes the output to the Excel file in memory
@@ -162,7 +219,7 @@ def write_output_to_excel_memory(file_contents: bytes, df: pd.DataFrame) -> byte
         output.seek(0)
         return output.getvalue()
     except Exception as e:
-        print(f"catched error in write_output_to_excel_memory: {e}")
+        print(f"Exception in write_output_to_excel_memory: {e}")
         return file_contents  # Return original file if processing fails
 
 # Function to process an image link and return its blob URL
@@ -178,7 +235,7 @@ async def process_image_link(url: str) -> str:
         else:
             return f"Failed to retrieve image: {response.status_code}"
     except Exception as e:
-        print(f"catched error in process_image_link: {e}")
+        print(f"Exception in process_image_link: {e}")
         return "Error: catched error"
 
 
@@ -191,20 +248,35 @@ async def send_message(assistant_id: str, request: MessageRequest):
         headers = await get_trimble_auth_headers()
         payload = request.dict()
         
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        # Add timeout to prevent hanging
+        response = requests.post(url, headers=headers, json=payload, timeout=25)
         
         if response.status_code == 200:
             try:
                 return response.json()
             except Exception as e:
-                print(f"catched error in send_message json parsing: {e}")
-                return {"message": "Error: catched error"}
+                print(f"JSON parsing error in send_message: {e}")
+                return {"message": "Error: JSON parsing failed"}
+        elif response.status_code == 504:
+            print(f"504 Gateway timeout for assistant {assistant_id}")
+            return {"message": "Error: Gateway timeout (504)"}
         else:
-            print(f"catched error in send_message http error: {response.status_code}")
-            return {"message": "Error: catched error"}
+            print(f"HTTP {response.status_code} for assistant {assistant_id}: {response.text}")
+            return {"message": f"Error: HTTP {response.status_code}"}
+            
+    except requests.exceptions.Timeout:
+        print(f"Request timeout for assistant {assistant_id}")
+        return {"message": "Error: Request timeout"}
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection error for assistant {assistant_id}: {e}")
+        return {"message": "Error: Connection failed"}
     except Exception as e:
-        print(f"catched error in send_message: {e}")
-        return {"message": "Error: catched error"}
+        error_msg = str(e)
+        print(f"Exception in send_message for {assistant_id}: {error_msg}")
+        if "504" in error_msg or "Gateway" in error_msg:
+            return {"message": "Error: Gateway timeout"}
+        else:
+            return {"message": f"Error: {error_msg}"}
 
 
 # Sends a message to all assistants and consolidates the responses
@@ -218,14 +290,21 @@ async def send_to_all_assistants(request: MessageRequest):
             for aid in ASSISTANT_MAP
         ]
 
-        results = await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        consolidated = "\n".join(
-            f"{aid}: {result}" for (aid, result) in zip(ASSISTANT_MAP.keys(), results)
-        )
+        # Handle exceptions in results
+        processed_results = []
+        for aid, result in zip(ASSISTANT_MAP.keys(), results):
+            if isinstance(result, Exception):
+                print(f"Exception from assistant {aid}: {result}")
+                processed_results.append(f"{aid}: Error - {str(result)}")
+            else:
+                processed_results.append(f"{aid}: {result}")
+
+        consolidated = "\n".join(processed_results)
         return {"consolidated_response": consolidated}
     except Exception as e:
-        print(f"catched error in send_to_all_assistants: {e}")
+        print(f"Exception in send_to_all_assistants: {e}")
         return {"consolidated_response": "Error: catched error"}
 
 
@@ -233,9 +312,6 @@ async def send_to_all_assistants(request: MessageRequest):
 
 async def process_hyperlinks(file: UploadFile, sheet_name: str) -> bytes:
     """Process hyperlinks from uploaded Excel file and return processed file as bytes."""
-    processed_count = 0
-    failed_count = 0
-    
     try:
         # Read the original file contents
         file_contents = await file.read()
@@ -243,158 +319,187 @@ async def process_hyperlinks(file: UploadFile, sheet_name: str) -> bytes:
         # Reset file pointer for reading the dataframe
         await file.seek(0)
         df = await read_hyperlinks(file, sheet_name)
-        
-        print(f"Starting to process {len(df)} hyperlinks from sheet '{sheet_name}'")
 
-        async def process_link(row_index, row):
-            """Handles individual link processing asynchronously with enhanced error handling."""
-            nonlocal processed_count, failed_count
-            
-            link = None
+        async def process_link(row):
+            """Handles individual link processing asynchronously."""
             try:
                 link = row.get("Unnamed: 1")
-                if pd.isnull(link) or not str(link).strip():
-                    print(f"Row {row_index + 1}: Skipping empty or null link")
-                    return None
-                
-                link = str(link).strip()
-                print(f"Row {row_index + 1}: Processing link: {link}")
+                if pd.notnull(link):
+                    print(f"Processing link: {link}")
 
-                response_text = ""
-                try:
-                    if is_image_url(link):
-                        print(f"Row {row_index + 1}: Processing as image URL")
-                        # Process image URL
-                        blob_url = await process_image_link(link)
-                        message_request = MessageRequest(message=blob_url, stream=False)
-                        assistant_response = await send_message("trimble-media-image-2-text", message_request)
-                        response_text = assistant_response.get("message", "No text found")
-                        print(f"Row {row_index + 1}: Image processing completed")
-                    else:
-                        print(f"Row {row_index + 1}: Processing as article URL")
-                        # Process article URL
-                        scraped_text = web_scrape_text(link)
-                        if not scraped_text or scraped_text.strip() == "":
-                            print(f"Row {row_index + 1}: Warning - No text scraped from {link}")
-                            response_text = "No content scraped"
-                        else:
-                            message_request = MessageRequest(message=scraped_text, stream=False)
-                            assistant_response = await send_to_all_assistants(message_request)
-                            response_text = assistant_response.get("consolidated_response", "No response")
-                            print(f"Row {row_index + 1}: Article processing completed")
-                            
-                except Exception as e:
-                    print(f"Row {row_index + 1}: Error processing link {link}: {str(e)}")
-                    print(f"Row {row_index + 1}: Exception type: {type(e).__name__}")
-                    response_text = f"Processing error: {type(e).__name__}"
-                    # Continue with category processing even if link processing fails
-
-                # Process categories - this should always work even if response_text is empty/error
-                try:
-                    row_dict = {cat: "" for cat in categories}
-                    row_dict["Article Title & Link"] = link
-
-                    if response_text and response_text != "Processing error":
-                        matched_categories = []
-                        for category in categories:
+                    response_text = "Error: No response"
+                    try:
+                        if is_image_url(link):
+                            # Process image URL with specific error handling
+                            print(f"Processing as image: {link}")
                             try:
-                                if re.search(rf'\b{re.escape(category)}\b', response_text, flags=re.IGNORECASE):
-                                    row_dict[category] = "X"
-                                    matched_categories.append(category)
-                            except Exception as cat_e:
-                                print(f"Row {row_index + 1}: Error matching category '{category}': {str(cat_e)}")
-                                continue
-                        
-                        if matched_categories:
-                            print(f"Row {row_index + 1}: Matched categories: {', '.join(matched_categories)}")
+                                # Add timeout for image processing
+                                blob_url = await asyncio.wait_for(
+                                    process_image_link(link), 
+                                    timeout=30
+                                )
+                                print(f"Got blob URL for {link}: {blob_url[:50]}..." if blob_url else "No blob URL")
+                                
+                                message_request = MessageRequest(message=blob_url, stream=False)
+                                assistant_response = await asyncio.wait_for(
+                                    send_message("trimble-media-image-2-text", message_request),
+                                    timeout=30
+                                )
+                                response_text = assistant_response.get("message", "No text found")
+                                print(f"Assistant response for image {link}: Success")
+                            except asyncio.TimeoutError:
+                                print(f"Timeout in image processing for {link}")
+                                response_text = "Error: Image processing timeout"
+                            except Exception as img_e:
+                                error_msg = str(img_e)
+                                print(f"Exception in image processing for {link}: {error_msg}")
+                                if "504" in error_msg or "timeout" in error_msg.lower():
+                                    response_text = "Error: Image processing timeout"
+                                else:
+                                    response_text = "Error: Image processing failed"
                         else:
-                            print(f"Row {row_index + 1}: No categories matched")
-                    else:
-                        print(f"Row {row_index + 1}: Skipping category matching due to processing error")
-
-                    processed_count += 1
-                    print(f"Row {row_index + 1}: Successfully processed ({processed_count} total)")
-                    return row_dict
+                            # Process article URL with specific error handling
+                            print(f"Processing as article: {link}")
+                            try:
+                                # Add timeout for web scraping
+                                scraped_text = await asyncio.wait_for(
+                                    asyncio.get_event_loop().run_in_executor(
+                                        None, 
+                                        web_scrape_text, 
+                                        link
+                                    ),
+                                    timeout=20
+                                )
+                                print(f"Scraped text length for {link}: {len(scraped_text)} characters")
+                                
+                                message_request = MessageRequest(message=scraped_text, stream=False)
+                                assistant_response = await asyncio.wait_for(
+                                    send_to_all_assistants(message_request),
+                                    timeout=45  # Longer timeout for multiple assistants
+                                )
+                                response_text = assistant_response.get("consolidated_response", "No response")
+                                print(f"Assistant response for article {link}: Success")
+                            except asyncio.TimeoutError:
+                                print(f"Timeout in article processing for {link}")
+                                response_text = "Error: Article processing timeout"
+                            except Exception as article_e:
+                                error_msg = str(article_e)
+                                print(f"Exception in article processing for {link}: {error_msg}")
+                                if "504" in error_msg or "timeout" in error_msg.lower():
+                                    response_text = "Error: Article processing timeout"
+                                else:
+                                    response_text = "Error: Article processing failed"
+                                
+                    except Exception as e:
+                        print(f"Exception in processing link {link}: {e}")
+                        response_text = "Error: Link processing failed"
                     
-                except Exception as e:
-                    print(f"Row {row_index + 1}: Error in category processing for {link}: {str(e)}")
-                    # Return basic row dict even if category processing fails
+                    # Always continue to category processing, even if assistant calls failed
+                    print(f"Continuing to category processing for {link} with response: {response_text[:100]}...")
+
+                    # Always create a result row, regardless of what happened above
                     try:
                         row_dict = {cat: "" for cat in categories}
                         row_dict["Article Title & Link"] = link
-                        processed_count += 1
-                        return row_dict
-                    except Exception as final_e:
-                        print(f"Row {row_index + 1}: Final fallback error: {str(final_e)}")
-                        failed_count += 1
-                        return None
 
-            except Exception as e:
-                failed_count += 1
-                print(f"Row {row_index + 1}: Unexpected error in process_link for {link}: {str(e)}")
-                print(f"Row {row_index + 1}: Exception traceback: {traceback.format_exc()}")
-                
-                # Try to return at least the link information
-                try:
-                    if link:
+                        # Only process categories if we have meaningful response text
+                        if response_text and not response_text.startswith("Error:") and len(response_text.strip()) > 10:
+                            category_count = 0
+                            for category in categories:
+                                try:
+                                    if re.search(rf'\b{re.escape(category)}\b', response_text, flags=re.IGNORECASE):
+                                        row_dict[category] = "X"
+                                        category_count += 1
+                                except Exception as regex_e:
+                                    print(f"Exception in regex for category {category}: {regex_e}")
+                                    continue
+                            print(f"Found {category_count} matching categories for {link}")
+                        else:
+                            print(f"No valid response text for category matching: {response_text}")
+
+                        print(f"Successfully processed {link} - moving to next link")
+                        return row_dict
+                        
+                    except Exception as e:
+                        print(f"Exception in processing categories for {link}: {e}")
+                        # Still return a basic row to keep processing going
                         row_dict = {cat: "" for cat in categories}
                         row_dict["Article Title & Link"] = link
+                        print(f"Returning basic row for {link} due to category processing error")
                         return row_dict
-                except Exception:
-                    pass
-                    
-                return None
 
-        # Process all links with enhanced error handling
+                return None
+            except Exception as e:
+                print(f"Exception in process_link for {link if 'link' in locals() else 'unknown link'}: {e}")
+                # Even on complete failure, try to return something to continue processing
+                try:
+                    link = row.get("Unnamed: 1", "unknown")
+                    row_dict = {cat: "" for cat in categories}
+                    row_dict["Article Title & Link"] = str(link)
+                    print(f"Returning error row for {link} to continue processing")
+                    return row_dict
+                except Exception:
+                    print(f"Could not create error row, skipping this link entirely")
+                    return None
+
+        # Process all links with maximum resilience and controlled concurrency
+        total_links = len(df)
+        print(f"Starting to process {total_links} links with full error resilience...")
+        
+        # Limit concurrency to prevent AWS gateway timeouts
+        semaphore = asyncio.Semaphore(5)  # Max 5 concurrent requests
+        
+        async def process_link_with_semaphore(row):
+            async with semaphore:
+                return await process_link(row)
+        
         try:
-            print(f"Creating processing tasks for {len(df)} rows")
-            tasks = [process_link(idx, row) for idx, (_, row) in enumerate(df.iterrows())]
-            
-            # Use return_exceptions=True to prevent one failure from stopping all processing
-            print("Starting parallel processing of all links...")
+            tasks = [process_link_with_semaphore(row) for _, row in df.iterrows()]
+            # Use return_exceptions=True to ensure NO task failure stops others
             results = await asyncio.gather(*tasks, return_exceptions=True)
             
-            # Filter out exceptions and None results, but log them
+            # Process results with detailed error reporting
             valid_results = []
-            for idx, result in enumerate(results):
+            error_count = 0
+            success_count = 0
+            
+            for i, result in enumerate(results):
                 if isinstance(result, Exception):
-                    print(f"Row {idx + 1}: Task failed with exception: {str(result)}")
-                    failed_count += 1
+                    error_count += 1
+                    print(f"Task {i+1}/{total_links} failed with exception: {result}")
+                    # Continue to next task without stopping
+                    continue
                 elif result is not None:
+                    success_count += 1
                     valid_results.append(result)
-                # None results are already counted in process_link
+                    print(f"Task {i+1}/{total_links} completed successfully")
+                else:
+                    print(f"Task {i+1}/{total_links} returned None (skipped)")
             
-            print(f"Processing completed: {len(valid_results)} successful, {failed_count} failed")
+            print(f"\nProcessing Summary:")
+            print(f"  Total links: {total_links}")
+            print(f"  Successful: {success_count}")
+            print(f"  Errors: {error_count}")
+            print(f"  Skipped: {total_links - success_count - error_count}")
             
-            if valid_results:
-                result_df = pd.DataFrame(valid_results)
-                print(f"Created result DataFrame with {len(result_df)} rows")
-            else:
-                print("No valid results - creating empty DataFrame")
-                result_df = pd.DataFrame()
-                
+            result_df = pd.DataFrame(valid_results) if valid_results else pd.DataFrame()
+            print(f"  Final DataFrame has {len(result_df)} rows")
+            
         except Exception as e:
-            print(f"Critical error in task processing: {str(e)}")
-            print(f"Exception traceback: {traceback.format_exc()}")
+            print(f"Exception in gathering results: {e}")
+            print("Creating empty DataFrame due to gathering failure")
             result_df = pd.DataFrame()
 
         # Write output to Excel file in memory and return the bytes
-        try:
-            processed_file_bytes = write_output_to_excel_memory(file_contents, result_df)
-            print(f"Successfully created processed file. Total processed: {processed_count}, Failed: {failed_count}")
-            return processed_file_bytes
-        except Exception as e:
-            print(f"Error writing to Excel: {str(e)}")
-            return file_contents  # Return original file if Excel writing fails
+        processed_file_bytes = write_output_to_excel_memory(file_contents, result_df)
         
+        return processed_file_bytes
     except Exception as e:
-        print(f"Critical error in process_hyperlinks: {str(e)}")
-        print(f"Exception traceback: {traceback.format_exc()}")
+        print(f"Exception in process_hyperlinks: {e}")
         # Return original file if everything fails
         try:
-            await file.seek(0)
             file_contents = await file.read()
             return file_contents
-        except Exception as final_e:
-            print(f"Failed to read original file: {str(final_e)}")
+        except Exception as file_e:
+            print(f"Exception reading original file: {file_e}")
             return b""

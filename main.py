@@ -38,13 +38,19 @@ app.include_router(media_router.router)
 @app.get("/health")
 async def health_check():
     """Simple health check endpoint."""
-    return {
-        "status": "healthy",
-        "cors_origins": "*",
-        "environment": settings.ENVIRONMENT
-    }
+    try:
+        return {
+            "status": "healthy",
+            "cors_origins": "*",
+            "environment": settings.ENVIRONMENT
+        }
+    except Exception as e:
+        print(f"Exception in health_check: {e}")
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
-
-    uvicorn.run("main:app", host="127.0.0.1", port=8002, reload=True) 
+    try:
+        uvicorn.run("main:app", host="127.0.0.1", port=8002, reload=True)
+    except Exception as e:
+        print(f"Exception starting server: {e}") 
 

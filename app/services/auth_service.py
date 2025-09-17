@@ -33,19 +33,27 @@ class TrimbleAuthService:
         Raises:
             httpx.HTTPError: If token request fails
         """
-        if not force_refresh and self._is_token_valid():
-            return self._access_token
-        
-        return await self._request_new_token()
+        try:
+            if not force_refresh and self._is_token_valid():
+                return self._access_token
+            
+            return await self._request_new_token()
+        except Exception as e:
+            print(f"Exception in get_access_token: {e}")
+            return self._access_token if self._access_token else ""
     
     def _is_token_valid(self) -> bool:
         """Check if current token is valid and not expired."""
-        if not self._access_token or not self._token_expires_at:
+        try:
+            if not self._access_token or not self._token_expires_at:
+                return False
+            
+            # Add 5-minute buffer before expiration
+            buffer_time = timedelta(minutes=5)
+            return datetime.now() < (self._token_expires_at - buffer_time)
+        except Exception as e:
+            print(f"Exception in _is_token_valid: {e}")
             return False
-        
-        # Add 5-minute buffer before expiration
-        buffer_time = timedelta(minutes=5)
-        return datetime.now() < (self._token_expires_at - buffer_time)
     
     async def _request_new_token(self) -> str:
         """
@@ -108,15 +116,10 @@ class TrimbleAuthService:
                 
                 return self._access_token
                 
-        except httpx.HTTPError as e:
-            logger.error("Failed to obtain access token: %s", e)
-            if hasattr(e, 'response') and e.response is not None:
-                logger.error("Response status: %s", e.response.status_code)
-                logger.error("Response body: %s", e.response.text)
-            raise
         except Exception as e:
-            logger.error("Unexpected error during token request: %s", e)
-            raise
+            print(f"Exception in _request_new_token: {e}")
+            logger.error("Failed to obtain access token: %s", e)
+            return self._access_token if self._access_token else ""
     
     async def get_auth_headers(self) -> Dict[str, str]:
         """
@@ -125,12 +128,16 @@ class TrimbleAuthService:
         Returns:
             Dictionary with Authorization header
         """
-        token = await self.get_access_token()
-        logger.info("Token: %s", token)
-        return {
-            "Authorization": f"{self._token_type} {token}",
-            "Content-Type": "application/json"
-        }
+        try:
+            token = await self.get_access_token()
+            logger.info("Token: %s", token)
+            return {
+                "Authorization": f"{self._token_type} {token}",
+                "Content-Type": "application/json"
+            }
+        except Exception as e:
+            print(f"Exception in get_auth_headers: {e}")
+            return {"Content-Type": "application/json"}
     
     def invalidate_token(self):
         """Invalidate current token to force refresh on next request."""
@@ -150,7 +157,11 @@ async def get_trimble_auth_headers() -> Dict[str, str]:
     Returns:
         Dictionary with Authorization and Content-Type headers
     """
-    return await auth_service.get_auth_headers()
+    try:
+        return await auth_service.get_auth_headers()
+    except Exception as e:
+        print(f"Exception in get_trimble_auth_headers: {e}")
+        return {"Content-Type": "application/json"}
 
 
 async def get_trimble_access_token(force_refresh: bool = False) -> str:
@@ -163,4 +174,8 @@ async def get_trimble_access_token(force_refresh: bool = False) -> str:
     Returns:
         Valid access token string
     """
-    return await auth_service.get_access_token(force_refresh)
+    try:
+        return await auth_service.get_access_token(force_refresh)
+    except Exception as e:
+        print(f"Exception in get_trimble_access_token: {e}")
+        return ""
