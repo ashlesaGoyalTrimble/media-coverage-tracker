@@ -40,7 +40,7 @@ async def health_check():
     """Simple health check endpoint."""
     return {
         "status": "healthy",
-        "cors_origins": cors_origins,
+        "cors_origins": "*",
         "environment": settings.ENVIRONMENT
     }
 
